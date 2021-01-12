@@ -86,13 +86,6 @@ if [ ! -f /usr/bin/add-apt-repository ]; then
 	apt_install software-properties-common
 fi
 
-# Ensure the universe repository is enabled since some of our packages
-# come from there and minimal Ubuntu installs may have it turned off.
-hide_output add-apt-repository -y universe
-
-# Install the certbot PPA.
-hide_output add-apt-repository -y ppa:certbot/certbot
-
 # ### Update Packages
 
 # Update system packages to make sure we have the latest upstream versions
@@ -131,15 +124,12 @@ echo Installing system packages...
 apt_install python3 python3-dev python3-pip \
 	netcat-openbsd wget curl git sudo coreutils bc \
 	haveged pollinate openssh-client unzip \
-	unattended-upgrades cron ntp fail2ban rsyslog
+	cron ntp fail2ban rsyslog snapd
 
-# ### Suppress Upgrade Prompts
-# When Ubuntu 20 comes out, we don't want users to be prompted to upgrade,
-# because we don't yet support it.
-if [ -f /etc/update-manager/release-upgrades ]; then
-	tools/editconf.py /etc/update-manager/release-upgrades Prompt=never
-	rm -f /var/lib/ubuntu-release-upgrader/release-upgrade-available
-fi
+hide_output snap install core
+hide_output snap refresh core
+
+snap install --classic certbot
 
 # ### Set the system timezone
 #
@@ -234,17 +224,6 @@ if [ ! -f /root/.ssh/id_rsa_miab ]; then
 	echo 'Creating SSH key for backup…'
 	ssh-keygen -t rsa -b 2048 -a 100 -f /root/.ssh/id_rsa_miab -N '' -q
 fi
-
-# ### Package maintenance
-#
-# Allow apt to install system updates automatically every day.
-
-cat > /etc/apt/apt.conf.d/02periodic <<EOF;
-APT::Periodic::MaxAge "7";
-APT::Periodic::Update-Package-Lists "1";
-APT::Periodic::Unattended-Upgrade "1";
-APT::Periodic::Verbose "0";
-EOF
 
 # ### Firewall
 
